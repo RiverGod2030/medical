@@ -1,0 +1,11 @@
+{
+  "llm_provider": "zhipu",
+  "openai_api_key": "",
+  "openai_model": "gpt-4o",
+  "openai_base_url": "",
+  "claude_api_key": "",
+  "claude_model": "claude-sonnet-4-20250514",
+  "zhipu_api_key": "1b28dcdab9754fcc816da6955b6bd029.eLQDaZq8kWy3aKPL",
+  "zhipu_model": "glm-4v-flash",
+  "audit_prompt": ""
+}

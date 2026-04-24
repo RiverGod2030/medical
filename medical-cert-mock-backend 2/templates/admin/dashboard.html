@@ -1,0 +1,229 @@
+{% extends "admin/base.html" %}
+{% block title %}数据概览{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>数据概览</h1>
+    <p class="page-desc">AI 证件审核数据统计</p>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <span class="stat-value">{{ stats.total }}</span>
+            <span class="stat-label">总审核数</span>
+        </div>
+    </div>
+    <div class="stat-card stat-success">
+        <div class="stat-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <span class="stat-value">{{ stats.completed }}</span>
+            <span class="stat-label">审核完成</span>
+        </div>
+    </div>
+    <div class="stat-card stat-error">
+        <div class="stat-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <span class="stat-value">{{ stats.errors }}</span>
+            <span class="stat-label">审核异常</span>
+        </div>
+    </div>
+    {% if stats.review_breakdown %}
+    <div class="stat-card stat-warning">
+        <div class="stat-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <span class="stat-value">{{ stats.review_breakdown.needs_review }}</span>
+            <span class="stat-label">待复审</span>
+        </div>
+    </div>
+    <div class="stat-card" style="border-color: rgba(124,58,237,0.2);">
+        <div class="stat-icon" style="background: #f5f3ff; color: #7c3aed;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 10h18M3 6h18M3 14h18M3 18h18"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <span class="stat-value" style="color: #7c3aed;">{{ stats.appeal_count }}</span>
+            <span class="stat-label">申诉中</span>
+        </div>
+    </div>
+    {% if stats.sla_timeout > 0 %}
+    <div class="stat-card" style="border-color: rgba(220,38,38,0.2);">
+        <div class="stat-icon" style="background: #fef2f2; color: #dc2626;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <span class="stat-value" style="color: #dc2626;">{{ stats.sla_timeout }}</span>
+            <span class="stat-label">SLA 超时</span>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+    <div class="stat-card">
+        <div class="stat-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <span class="stat-value">{{ (stats.avg_confidence * 100) | int }}%</span>
+            <span class="stat-label">平均置信度</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <span class="stat-value">{{ (stats.avg_duration_ms / 1000) | round(1) }}s</span>
+            <span class="stat-label">平均审核时长</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <span class="stat-value">{{ stats.llm_provider | upper }}</span>
+            <span class="stat-label">当前大模型</span>
+        </div>
+    </div>
+</div>
+
+<!-- Role Distribution -->
+{% if stats.role_counts %}
+<div class="card">
+    <div class="card-header">
+        <h2>职业角色分布</h2>
+    </div>
+    <div class="role-bars">
+        {% for role, count in stats.role_counts.items() %}
+        <div class="role-bar-item">
+            <span class="role-bar-label">{{ role }}</span>
+            <div class="role-bar-track">
+                <div class="role-bar-fill" style="width: {{ (count / stats.completed * 100) | int }}%">
+                    <span class="role-bar-count">{{ count }}</span>
+                </div>
+            </div>
+            <span class="role-bar-pct">{{ (count / stats.completed * 100) | int }}%</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Certificate Type Distribution -->
+{% if stats.cert_counts %}
+<div class="card">
+    <div class="card-header">
+        <h2>证件类型分布</h2>
+    </div>
+    <div class="cert-cloud">
+        {% for cert, count in stats.cert_counts.items() %}
+        <span class="cert-tag" style="font-size: {{ [12 + count * 2, 24] | min }}px">
+            {{ cert }} <span class="cert-tag-count">({{ count }})</span>
+        </span>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Records -->
+<div class="card">
+    <div class="card-header">
+        <h2>最近审核记录</h2>
+        <a href="/records" class="link">查看全部 &rarr;</a>
+    </div>
+    <div id="recent-records" class="table-container">
+        <p class="loading">加载中...</p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadRecentRecords() {
+    try {
+        const res = await fetch('/api/records?per_page=5');
+        const data = await res.json();
+        const container = document.getElementById('recent-records');
+
+        if (data.records.length === 0) {
+            container.innerHTML = '<div class="empty-state"><svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>暂无审核记录</p><a href="/upload" class="btn-primary">上传第一张证件</a></div>';
+            return;
+        }
+
+        let html = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>图片</th>
+                        <th>识别角色</th>
+                        <th>证件类型</th>
+                        <th>置信度</th>
+                        <th>耗时</th>
+                        <th>时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        data.records.forEach(r => {
+            const isError = r.status === 'error';
+            html += `
+                <tr>
+                    <td><img src="${r.image_path}" class="thumb" alt="证件"></td>
+                    <td>
+                        ${isError ? '<span class="badge-error">异常</span>' : `<span class="badge-role">${r.detected_role || '-'}</span>`}
+                    </td>
+                    <td>${isError ? '-' : (r.certificate_type || '-')}</td>
+                    <td>
+                        ${isError ? '-' : `
+                            <span class="confidence ${r.confidence >= 0.8 ? 'high' : r.confidence >= 0.6 ? 'medium' : 'low'}">
+                                ${(r.confidence * 100).toFixed(0)}%
+                            </span>
+                        `}
+                    </td>
+                    <td>${(r.duration_ms / 1000).toFixed(1)}s</td>
+                    <td class="time">${r.timestamp}</td>
+                    <td><a href="/detail/${r.id}" class="btn-small">详情</a></td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    } catch (e) {
+        document.getElementById('recent-records').innerHTML = '<p class="error">加载失败</p>';
+    }
+}
+
+loadRecentRecords();
+</script>
+{% endblock %}

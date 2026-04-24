@@ -1,0 +1,237 @@
+{% extends "admin/base.html" %}
+{% block title %}单张审核{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>单张证件审核</h1>
+    <p class="page-desc">上传一张证件图片，调用大模型进行 AI 审核</p>
+</div>
+
+<div class="two-col">
+    <!-- Upload Area -->
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <h2>上传证件图片</h2>
+            </div>
+            <div class="upload-zone" id="upload-zone">
+                <input type="file" id="file-input" accept="image/*" hidden>
+                <div class="upload-placeholder" id="upload-placeholder">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <p class="upload-title">拖拽图片到此处，或点击选择</p>
+                    <p class="upload-hint">支持 JPG、PNG、BMP、WebP，最大 32MB</p>
+                </div>
+                <div class="upload-preview" id="upload-preview" style="display:none;">
+                    <img id="preview-img" src="" alt="预览">
+                    <button class="btn-remove" onclick="clearUpload()">&times;</button>
+                </div>
+            </div>
+            <button class="btn-primary btn-lg btn-block" id="btn-audit" onclick="startAudit()" disabled>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                开始 AI 审核
+            </button>
+        </div>
+    </div>
+
+    <!-- Result Area -->
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <h2>审核结果</h2>
+                <span class="status-badge" id="result-status">等待上传</span>
+            </div>
+            <div id="result-area">
+                <div class="empty-result">
+                    <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <p>上传图片后将显示 AI 审核结果</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Auditing Overlay -->
+<div class="auditing-overlay" id="auditing-overlay" style="display:none;">
+    <div class="auditing-card">
+        <div class="audit-spinner"></div>
+        <h3>AI 正在分析证件...</h3>
+        <p id="audit-timer">0.0s</p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let selectedFile = null;
+
+// Drag & Drop
+const zone = document.getElementById('upload-zone');
+const placeholder = document.getElementById('upload-placeholder');
+const preview = document.getElementById('upload-preview');
+const previewImg = document.getElementById('preview-img');
+
+zone.addEventListener('click', (e) => {
+    if (e.target.closest('.btn-remove')) return;
+    document.getElementById('file-input').click();
+});
+
+zone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    zone.classList.add('drag-over');
+});
+
+zone.addEventListener('dragleave', () => {
+    zone.classList.remove('drag-over');
+});
+
+zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type.startsWith('image/')) {
+        handleFile(files[0]);
+    }
+});
+
+document.getElementById('file-input').addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        handleFile(e.target.files[0]);
+    }
+});
+
+function handleFile(file) {
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        previewImg.src = e.target.result;
+        placeholder.style.display = 'none';
+        preview.style.display = 'block';
+        document.getElementById('btn-audit').disabled = false;
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearUpload() {
+    selectedFile = null;
+    placeholder.style.display = 'flex';
+    preview.style.display = 'none';
+    document.getElementById('btn-audit').disabled = true;
+    document.getElementById('file-input').value = '';
+}
+
+async function startAudit() {
+    if (!selectedFile) return;
+
+    const overlay = document.getElementById('auditing-overlay');
+    overlay.style.display = 'flex';
+    document.getElementById('btn-audit').disabled = true;
+
+    const startTime = Date.now();
+    const timerEl = document.getElementById('audit-timer');
+    const timerInterval = setInterval(() => {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        timerEl.textContent = `${elapsed}s`;
+    }, 100);
+
+    const formData = new FormData();
+    formData.append('image', selectedFile);
+
+    try {
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        clearInterval(timerInterval);
+        overlay.style.display = 'none';
+        document.getElementById('btn-audit').disabled = false;
+
+        displayResult(data);
+    } catch (e) {
+        clearInterval(timerInterval);
+        overlay.style.display = 'none';
+        document.getElementById('btn-audit').disabled = false;
+        alert('审核失败：' + e.message);
+    }
+}
+
+function displayResult(data) {
+    const result = data.result;
+    const statusEl = document.getElementById('result-status');
+    const area = document.getElementById('result-area');
+
+    const isError = 'error' in result;
+
+    statusEl.textContent = isError ? '审核异常' : '审核完成';
+    statusEl.className = 'status-badge ' + (isError ? 'badge-error' : 'badge-success');
+
+    if (isError) {
+        area.innerHTML = `
+            <div class="result-error">
+                <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <h3>审核异常</h3>
+                <p class="error-message">${result.error}</p>
+                ${result.raw_response ? `<details><summary>原始响应</summary><pre>${result.raw_response}</pre></details>` : ''}
+            </div>
+        `;
+        return;
+    }
+
+    let html = `
+        <div class="result-success">
+            <div class="result-hero">
+                <span class="role-badge">${result.detected_role}</span>
+                <p class="cert-type">${result.certificate_type}</p>
+            </div>
+
+            <div class="result-metrics">
+                <div class="metric">
+                    <span class="metric-value metric-confidence" style="--val: ${result.confidence * 100}">${(result.confidence * 100).toFixed(0)}%</span>
+                    <span class="metric-label">置信度</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-value ${(result.authenticity_score || 0) >= 0.75 ? 'high' : 'low'}">${((result.authenticity_score || 0) * 100).toFixed(0)}%</span>
+                    <span class="metric-label">真实性评分</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-value">${(data.duration_ms / 1000).toFixed(1)}s</span>
+                    <span class="metric-label">审核耗时</span>
+                </div>
+            </div>
+
+            <div class="result-info">
+                <h4>提取的证件信息</h4>
+                <table class="info-table">
+                    ${Object.entries(result.extracted_info || {}).map(([k, v]) => `
+                        <tr><td class="info-key">${k}</td><td class="info-val">${v}</td></tr>
+                    `).join('')}
+                </table>
+            </div>
+
+            ${result.analysis_notes ? `
+                <div class="result-notes">
+                    <h4>分析备注</h4>
+                    <p>${result.analysis_notes}</p>
+                </div>
+            ` : ''}
+
+            <div class="result-actions">
+                <a href="/records" class="btn-secondary">查看审核记录</a>
+                <button class="btn-small" onclick="clearUpload(); document.getElementById('result-area').innerHTML = '<div class=\\'empty-result\\'><svg class=\\'empty-icon\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><circle cx=\\'11\\' cy=\\'11\\' r=\\'8\\'/><line x1=\\'21\\' y1=\\'21\\' x2=\\'16.65\\' y2=\\'16.65\\'/></svg><p>上传图片后将显示 AI 审核结果</p></div>'; document.getElementById('result-status').textContent = '等待上传'; document.getElementById('result-status').className = 'status-badge';">继续审核</button>
+            </div>
+        </div>
+    `;
+
+    area.innerHTML = html;
+}
+</script>
+{% endblock %}

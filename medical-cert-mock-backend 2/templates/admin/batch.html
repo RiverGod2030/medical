@@ -1,0 +1,187 @@
+{% extends "admin/base.html" %}
+{% block title %}批量审核{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>批量证件审核</h1>
+    <p class="page-desc">一次性上传多张证件图片，批量调用大模型审核</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>上传图片</h2>
+        <span class="batch-count" id="batch-count">已选择 0 张</span>
+    </div>
+    <div class="upload-zone batch-zone" id="batch-zone">
+        <input type="file" id="batch-file-input" accept="image/*" multiple hidden>
+        <div class="upload-placeholder" id="batch-placeholder">
+            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <p class="upload-title">拖拽多张图片到此处，或点击选择</p>
+            <p class="upload-hint">支持 JPG、PNG、BMP、WebP，可一次选择多张图片</p>
+        </div>
+        <div class="batch-preview" id="batch-preview"></div>
+    </div>
+    <div class="batch-actions">
+        <button class="btn-primary btn-lg" id="btn-batch-audit" onclick="startBatchAudit()" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            开始批量审核
+        </button>
+        <button class="btn-secondary" onclick="clearBatch()">清空</button>
+    </div>
+</div>
+
+<!-- Batch Results -->
+<div class="card" id="batch-results" style="display:none;">
+    <div class="card-header">
+        <h2>批量审核结果</h2>
+        <span class="batch-result-summary" id="batch-summary"></span>
+    </div>
+    <div id="batch-results-list"></div>
+</div>
+
+<!-- Progress Overlay -->
+<div class="auditing-overlay" id="progress-overlay" style="display:none;">
+    <div class="progress-card">
+        <h3>批量审核中...</h3>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <p id="progress-text">0 / 0</p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let batchFiles = [];
+
+const zone = document.getElementById('batch-zone');
+const preview = document.getElementById('batch-preview');
+
+zone.addEventListener('click', (e) => {
+    if (e.target.closest('.batch-thumb')) return;
+    document.getElementById('batch-file-input').click();
+});
+
+zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => { zone.classList.remove('drag-over'); });
+zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    addFiles(Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')));
+});
+
+document.getElementById('batch-file-input').addEventListener('change', (e) => {
+    addFiles(Array.from(e.target.files));
+    e.target.value = '';
+});
+
+function addFiles(files) {
+    batchFiles = batchFiles.concat(files);
+    renderBatchPreview();
+}
+
+function removeFile(index) {
+    batchFiles.splice(index, 1);
+    renderBatchPreview();
+}
+
+function renderBatchPreview() {
+    document.getElementById('batch-count').textContent = `已选择 ${batchFiles.length} 张`;
+    document.getElementById('btn-batch-audit').disabled = batchFiles.length === 0;
+    document.getElementById('batch-placeholder').style.display = batchFiles.length > 0 ? 'none' : 'flex';
+
+    preview.innerHTML = batchFiles.map((file, i) => `
+        <div class="batch-thumb">
+            <img src="${URL.createObjectURL(file)}" alt="${file.name}">
+            <span class="batch-thumb-name">${file.name}</span>
+            <button class="batch-thumb-remove" onclick="event.stopPropagation(); removeFile(${i})">&times;</button>
+        </div>
+    `).join('');
+}
+
+function clearBatch() {
+    batchFiles = [];
+    renderBatchPreview();
+    document.getElementById('batch-results').style.display = 'none';
+}
+
+async function startBatchAudit() {
+    if (batchFiles.length === 0) return;
+
+    const overlay = document.getElementById('progress-overlay');
+    overlay.style.display = 'flex';
+    document.getElementById('btn-batch-audit').disabled = true;
+
+    const total = batchFiles.length;
+    let completed = 0;
+    let success = 0;
+    let errors = 0;
+    const results = [];
+
+    for (let i = 0; i < batchFiles.length; i++) {
+        const file = batchFiles[i];
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            const res = await fetch('/api/upload', { method: 'POST', body: formData });
+            const data = await res.json();
+            results.push({ file: file.name, ...data });
+            if (data.success) success++; else errors++;
+        } catch (e) {
+            results.push({ file: file.name, error: e.message, success: false });
+            errors++;
+        }
+
+        completed++;
+        document.getElementById('progress-bar').style.width = `${(completed / total * 100)}%`;
+        document.getElementById('progress-text').textContent = `${completed} / ${total}`;
+    }
+
+    overlay.style.display = 'none';
+    document.getElementById('btn-batch-audit').disabled = false;
+
+    displayBatchResults(results, success, errors);
+}
+
+function displayBatchResults(results, success, errors) {
+    const container = document.getElementById('batch-results');
+    const summary = document.getElementById('batch-summary');
+    const list = document.getElementById('batch-results-list');
+
+    container.style.display = 'block';
+    summary.textContent = `成功 ${success} / 失败 ${errors}`;
+
+    list.innerHTML = results.map((r, i) => {
+        const isError = !r.success || 'error' in (r.result || {});
+        const result = r.result || {};
+        return `
+            <div class="batch-result-item ${isError ? 'result-error-item' : 'result-success-item'}">
+                <span class="batch-result-index">${i + 1}</span>
+                <span class="batch-result-file" title="${r.file}">${r.file}</span>
+                ${isError ? `
+                    <span class="badge-error">异常</span>
+                    <span class="batch-result-error" title="${result.error || r.error}">${(result.error || r.error || '').substring(0, 50)}</span>
+                ` : `
+                    <span class="badge-role">${result.detected_role}</span>
+                    <span class="batch-result-cert">${result.certificate_type}</span>
+                    <span class="confidence ${result.confidence >= 0.8 ? 'high' : 'medium'}">${(result.confidence * 100).toFixed(0)}%</span>
+                    <span class="batch-result-time">${(r.duration_ms / 1000).toFixed(1)}s</span>
+                    ${r.record_id ? `<a href="/detail/${r.record_id}" class="btn-small">详情</a>` : ''}
+                `}
+            </div>
+        `;
+    }).join('');
+
+    container.scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+{% endblock %}

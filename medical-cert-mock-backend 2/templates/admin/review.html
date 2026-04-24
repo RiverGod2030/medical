@@ -1,0 +1,361 @@
+{% extends "admin/base.html" %}
+{% block title %}人工复审{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>人工复审</h1>
+    <p class="page-desc">置信度 50%~90% 的记录需要人工复核，用户申诉也会直接进入此队列</p>
+</div>
+
+<div class="stats-row">
+    <div class="stat-mini stat-warn">
+        <span class="stat-mini-value" id="count-pending">0</span>
+        <span class="stat-mini-label">待复审</span>
+    </div>
+    <div class="stat-mini stat-ok">
+        <span class="stat-mini-value" id="count-approved">0</span>
+        <span class="stat-mini-label">已通过</span>
+    </div>
+    <div class="stat-mini stat-danger">
+        <span class="stat-mini-value" id="count-rejected">0</span>
+        <span class="stat-mini-label">已拒绝</span>
+    </div>
+    <div class="stat-mini" style="border-color: rgba(124,58,237,0.15);">
+        <span class="stat-mini-value" id="count-appeal" style="color: #7c3aed;">0</span>
+        <span class="stat-mini-label">申诉中</span>
+    </div>
+    <div class="stat-mini" style="border-color: rgba(220,38,38,0.15);">
+        <span class="stat-mini-value" id="count-sla" style="color: #dc2626;">0</span>
+        <span class="stat-mini-label">已超时</span>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>复审队列</h2>
+        <div class="filter-tabs">
+            <button class="tab active" data-filter="all" onclick="loadReview('all')">全部</button>
+            <button class="tab" data-filter="needs_review" onclick="loadReview('needs_review')">待复审</button>
+            <button class="tab" data-filter="appeal" onclick="loadReview('appeal')">申诉件</button>
+            <button class="tab" data-filter="manually_approved" onclick="loadReview('manually_approved')">已通过</button>
+            <button class="tab" data-filter="manually_rejected" onclick="loadReview('manually_rejected')">已拒绝</button>
+        </div>
+    </div>
+    <div id="review-list" class="review-list">
+        <div class="loading-state"><div class="spinner"></div><p>加载中...</p></div>
+    </div>
+</div>
+
+<!-- Review Modal -->
+<div class="modal-overlay" id="review-modal" style="display:none;">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>人工复审</h2>
+            <button class="modal-close" onclick="closeReviewModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="review-modal-body"></div>
+        <div class="modal-footer">
+            <textarea id="review-comment" class="textarea" rows="2" placeholder="复审备注（可选）"></textarea>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="submitReview('reject')">拒绝</button>
+            <button class="btn btn-primary" onclick="submitReview('approve')">通过</button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="edit-modal" style="display:none;">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>编辑记录信息</h2>
+            <button class="modal-close" onclick="closeEditModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="edit-modal-body"></div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeEditModal()">取消</button>
+            <button class="btn btn-primary" onclick="submitEdit()">保存修改</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentReviewId = null;
+let currentFilter = 'all';
+let currentEditRecord = null;
+
+async function loadReview(filter) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.filter === filter));
+
+    try {
+        const res = await fetch('/api/records?per_page=200');
+        const data = await res.json();
+        let records = data.records;
+
+        if (filter === 'appeal') {
+            records = records.filter(r => r.appeal && r.appeal.status === 'pending');
+        } else if (filter !== 'all') {
+            records = records.filter(r => r.review_status === filter);
+        }
+
+        renderReview(records);
+        loadCounts();
+    } catch(e) {}
+}
+
+function renderReview(records) {
+    const container = document.getElementById('review-list');
+    if (records.length === 0) {
+        container.innerHTML = '<div class="empty-state"><svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m5.983-2.999A8.99 8.99 0 0112 21C7.03 21 3 16.97 3 12S7.03 3 12 3a8.99 8.99 0 016.983 3.001z"/></svg><p>暂无记录</p></div>';
+        return;
+    }
+
+    // Sort: appeal first, then by submit_time descending (latest first)
+    records.sort((a, b) => {
+        const aA = a.appeal && a.appeal.status === 'pending' ? 1 : 0;
+        const bA = b.appeal && b.appeal.status === 'pending' ? 1 : 0;
+        if (aA !== bA) return bA - aA;
+        return (b.submit_time || '').localeCompare(a.submit_time || '');
+    });
+
+    container.innerHTML = records.map(r => {
+        const info = r.result?.extracted_info || {};
+        const conf = r.confidence != null ? (r.confidence * 100).toFixed(0) : '-';
+        const isDone = r.review_status?.startsWith('manually_');
+        const isAppeal = r.appeal && r.appeal.status === 'pending';
+        const sla = computeSLA(r);
+
+        return `
+        <div class="review-card ${isDone ? 'review-done' : ''} ${isAppeal ? 'review-appeal' : ''}">
+            <div class="review-card-img">
+                <img src="${r.image_path}" alt="证件">
+                <span class="review-badge review-${r.review_status}">${reviewLabel(r.review_status)}</span>
+                ${isAppeal ? '<span class="review-badge review-appeal-badge" style="top:3px;bottom:auto;background:rgba(124,58,237,0.9);">申诉</span>' : ''}
+            </div>
+            <div class="review-card-info">
+                <div class="review-card-title">
+                    <span class="role-tag">${r.detected_role || '-'}</span>
+                    <span>${r.certificate_type || '-'}</span>
+                </div>
+                <div class="review-meta">
+                    <span>姓名：${info['姓名'] || '-'}</span>
+                    <span>证件号：${info['证件编号'] || '-'}</span>
+                    ${conf !== '-' ? `<span>置信度：<strong class="${confColorClass(r.confidence)}">${conf}%</strong></span>` : ''}
+                </div>
+                <div class="review-meta" style="margin-bottom:4px;">
+                    <span style="font-size:11px;color:#94a3b8;">提交：${formatTime(r.submit_time || r.timestamp)}</span>
+                    ${!isDone ? `<span style="font-size:11px;color:${sla.expired ? '#dc2626' : '#94a3b8'};">${sla.expired ? '已超时 ' : '剩余 '}${sla.text}</span>` : ''}
+                </div>
+                ${isAppeal && r.appeal?.reason ? `<div class="review-comment"><strong>申诉理由：</strong>${r.appeal.reason}</div>` : ''}
+                ${r.manual_review ? `<div class="review-comment"><strong>复审意见：</strong>${r.manual_review.comment || '无'}</div>` : ''}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+                ${!isDone ? `<button class="btn btn-sm" onclick="openReviewModal('${r.id}')">复审</button>` : ''}
+                <button class="btn btn-sm btn-secondary" onclick="openEditModal('${r.id}')">编辑</button>
+                <a href="/detail/${r.id}" class="btn btn-sm btn-secondary">详情</a>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function computeSLA(record) {
+    if (!record.submit_time) return { text: '-', expired: false };
+    try {
+        const st = new Date(record.submit_time);
+        const deadline = new Date(st.getTime() + 24 * 60 * 60 * 1000);
+        const now = new Date();
+        const diff = deadline - now;
+        if (diff <= 0) {
+            const hours = Math.floor(Math.abs(diff) / 3600000);
+            return { text: `${hours}h`, expired: true };
+        }
+        const hours = Math.floor(diff / 3600000);
+        const mins = Math.floor((diff % 3600000) / 60000);
+        return { text: `${hours}h${mins}m`, expired: false };
+    } catch(e) {
+        return { text: '-', expired: false };
+    }
+}
+
+function formatTime(iso) {
+    try {
+        const d = new Date(iso);
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch(e) {
+        return iso;
+    }
+}
+
+function reviewLabel(s) {
+    const map = {needs_review:'待复审',manually_approved:'已通过',manually_rejected:'已拒绝',auto_passed:'自动通过',auto_rejected:'自动拒绝',duplicate_rejected:'重复拒绝'};
+    return map[s] || s || '-';
+}
+
+function confColorClass(c) {
+    if (c == null) return '';
+    if (c >= 0.8) return 'text-green';
+    if (c >= 0.6) return 'text-amber';
+    return 'text-red';
+}
+
+function openReviewModal(id) {
+    currentReviewId = id;
+    document.getElementById('review-comment').value = '';
+    const modal = document.getElementById('review-modal');
+    modal.style.display = 'flex';
+
+    fetch(`/api/records/${id}`).then(r => r.json()).then(d => {
+        const r = d.record;
+        const info = r.result?.extracted_info || {};
+        const sla = computeSLA(r);
+        document.getElementById('review-modal-body').innerHTML = `
+            <div class="review-detail-grid">
+                <div><img src="${r.image_path}" class="review-detail-img" alt="证件"></div>
+                <div>
+                    <table class="info-table">
+                        <tr><td class="info-key">识别角色</td><td>${r.detected_role || '-'}</td></tr>
+                        <tr><td class="info-key">证件类型</td><td>${r.certificate_type || '-'}</td></tr>
+                        <tr><td class="info-key">置信度</td><td class="${confColorClass(r.confidence)}">${r.confidence != null ? (r.confidence*100).toFixed(0)+'%' : '-'}</td></tr>
+                        <tr><td class="info-key">提交时间</td><td>${formatTime(r.submit_time || r.timestamp)}</td></tr>
+                        <tr><td class="info-key">SLA 剩余</td><td style="color:${sla.expired ? '#dc2626' : 'inherit'}">${sla.expired ? '已超时 ' : ''}${sla.text}</td></tr>
+                        ${r.appeal?.reason ? `<tr><td class="info-key">申诉理由</td><td style="color:#7c3aed;">${r.appeal.reason}</td></tr>` : ''}
+                        ${Object.entries(info).map(([k,v]) => `<tr><td class="info-key">${k}</td><td>${v}</td></tr>`).join('')}
+                    </table>
+                    ${r.result?.analysis_notes ? `<p class="ai-notes">${r.result.analysis_notes}</p>` : ''}
+                </div>
+            </div>`;
+    });
+}
+
+function closeReviewModal() {
+    document.getElementById('review-modal').style.display = 'none';
+    currentReviewId = null;
+}
+
+async function submitReview(action) {
+    if (!currentReviewId) return;
+    const comment = document.getElementById('review-comment').value;
+    try {
+        await fetch(`/api/review/${currentReviewId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({action, comment})
+        });
+        closeReviewModal();
+        loadReview(currentFilter);
+    } catch(e) { alert('操作失败'); }
+}
+
+// Edit modal
+function openEditModal(id) {
+    currentEditRecord = id;
+    const modal = document.getElementById('edit-modal');
+    modal.style.display = 'flex';
+
+    fetch(`/api/records/${id}`).then(r => r.json()).then(d => {
+        const r = d.record;
+        const info = r.result?.extracted_info || {};
+        const fields = ['姓名', '证件编号', '执业范围', '科室', '职称', '发证日期', '有效期至', '工作单位', '学校', '专业'];
+        const presentFields = fields.filter(f => info[f]);
+
+        document.getElementById('edit-modal-body').innerHTML = `
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px;">识别角色</label>
+                <select id="edit-role" class="input" style="width:100%;">
+                    <option value="医生" ${r.detected_role==='医生'?'selected':''}>医生</option>
+                    <option value="护士" ${r.detected_role==='护士'?'selected':''}>护士</option>
+                    <option value="技师" ${r.detected_role==='技师'?'selected':''}>技师</option>
+                    <option value="药师" ${r.detected_role==='药师'?'selected':''}>药师</option>
+                    <option value="医学生" ${r.detected_role==='医学生'?'selected':''}>医学生</option>
+                    <option value="医院管理人员" ${r.detected_role==='医院管理人员'?'selected':''}>医院管理人员</option>
+                    <option value="其他" ${r.detected_role==='其他'?'selected':''}>其他</option>
+                </select>
+            </div>
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px;">证件类型</label>
+                <input type="text" id="edit-cert-type" class="input" value="${r.certificate_type || ''}">
+            </div>
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px;">置信度 (0-100)</label>
+                <input type="number" id="edit-confidence" class="input" min="0" max="100" value="${r.confidence != null ? Math.round(r.confidence*100) : ''}">
+            </div>
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px;">审核状态</label>
+                <select id="edit-status" class="input" style="width:100%;">
+                    <option value="needs_review" ${r.review_status==='needs_review'?'selected':''}>待复审</option>
+                    <option value="auto_passed" ${r.review_status==='auto_passed'?'selected':''}>自动通过</option>
+                    <option value="manually_approved" ${r.review_status==='manually_approved'?'selected':''}>人工通过</option>
+                    <option value="auto_rejected" ${r.review_status==='auto_rejected'?'selected':''}>自动拒绝</option>
+                    <option value="manually_rejected" ${r.review_status==='manually_rejected'?'selected':''}>人工拒绝</option>
+                    <option value="duplicate_rejected" ${r.review_status==='duplicate_rejected'?'selected':''}>重复拒绝</option>
+                </select>
+            </div>
+            <h4 style="font-size:13px;font-weight:600;margin:16px 0 8px;color:#374151;">提取信息</h4>
+            ${presentFields.map(f => `
+                <div style="margin-bottom:8px;">
+                    <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;margin-bottom:3px;">${f}</label>
+                    <input type="text" class="input edit-info-field" data-field="${f}" value="${info[f] || ''}">
+                </div>
+            `).join('')}
+            ${presentFields.length === 0 ? '<p style="font-size:12px;color:#94a3b8;margin-bottom:8px;">无提取信息</p>' : ''}
+            <div style="margin-bottom:8px;">
+                <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;margin-bottom:3px;">分析备注</label>
+                <textarea id="edit-notes" class="textarea" rows="2">${r.result?.analysis_notes || ''}</textarea>
+            </div>`;
+    });
+}
+
+function closeEditModal() {
+    document.getElementById('edit-modal').style.display = 'none';
+    currentEditRecord = null;
+}
+
+async function submitEdit() {
+    if (!currentEditRecord) return;
+
+    const data = {
+        detected_role: document.getElementById('edit-role').value,
+        certificate_type: document.getElementById('edit-cert-type').value,
+        review_status: document.getElementById('edit-status').value,
+        extracted_info: {},
+        analysis_notes: document.getElementById('edit-notes').value
+    };
+
+    const confVal = document.getElementById('edit-confidence').value;
+    if (confVal) data.confidence = parseInt(confVal) / 100;
+
+    document.querySelectorAll('.edit-info-field').forEach(el => {
+        const field = el.dataset.field;
+        if (el.value.trim()) data.extracted_info[field] = el.value.trim();
+    });
+
+    try {
+        await fetch(`/api/records/${currentEditRecord}`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        closeEditModal();
+        loadReview(currentFilter);
+    } catch(e) { alert('保存失败'); }
+}
+
+// Load counts
+async function loadCounts() {
+    try {
+        const res = await fetch('/api/stats');
+        const s = await res.json();
+        document.getElementById('count-pending').textContent = s.review_breakdown?.needs_review || 0;
+        document.getElementById('count-approved').textContent = s.review_breakdown?.manually_approved || 0;
+        document.getElementById('count-rejected').textContent = s.review_breakdown?.manually_rejected || 0;
+        document.getElementById('count-appeal').textContent = s.appeal_count || 0;
+        document.getElementById('count-sla').textContent = s.sla_timeout || 0;
+    } catch(e) {}
+}
+
+loadReview('all');
+</script>
+{% endblock %}

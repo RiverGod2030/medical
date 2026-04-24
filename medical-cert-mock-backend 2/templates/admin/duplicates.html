@@ -1,0 +1,108 @@
+{% extends "admin/base.html" %}
+{% block title %}重复检测{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>重复检测</h1>
+        <p class="page-desc">证件编号或姓名重复的记录，第二次出现自动标记不通过</p>
+    </div>
+</div>
+
+<div class="stats-row">
+    <div class="stat-mini stat-danger">
+        <span class="stat-mini-value" id="dup-total">0</span>
+        <span class="stat-mini-label">重复记录数</span>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h2>重复记录列表</h2></div>
+    <div id="dup-list" class="dup-list">
+        <div class="loading-state"><div class="spinner"></div><p>加载中...</p></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadDuplicates() {
+    try {
+        const [dupRes, statsRes] = await Promise.all([
+            fetch('/api/duplicates'),
+            fetch('/api/stats')
+        ]);
+        const dupData = await dupRes.json();
+        const stats = await statsRes.json();
+        document.getElementById('dup-total').textContent = dupData.total;
+        renderDuplicates(dupData.duplicates, stats);
+    } catch(e) {}
+}
+
+function renderDuplicates(dups, stats) {
+    const container = document.getElementById('dup-list');
+    if (dups.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>暂无重复记录</p></div>';
+        return;
+    }
+
+    container.innerHTML = dups.map(d => {
+        const info = d.result?.extracted_info || {};
+        const origRecord = stats; // We'll link to the original
+        return `
+        <div class="dup-card">
+            <div class="dup-card-header">
+                <span class="dup-badge">重复</span>
+                <span class="dup-time">${d.timestamp}</span>
+            </div>
+            <div class="dup-card-body">
+                <div class="dup-images">
+                    <div class="dup-image-item">
+                        <img src="${d.image_path}" alt="重复证件">
+                        <span class="dup-image-label">当前上传</span>
+                    </div>
+                    ${d.duplicate_of ? `
+                    <div class="dup-image-item">
+                        <a href="/detail/${d.duplicate_of}" class="dup-original-link">
+                            点击查看原始记录 (${d.duplicate_of})
+                        </a>
+                        <span class="dup-image-label">原始记录</span>
+                    </div>` : ''}
+                </div>
+                <div class="dup-info">
+                    <div class="dup-info-row">
+                        <span class="dup-info-label">识别角色</span>
+                        <span class="role-tag">${d.detected_role}</span>
+                    </div>
+                    <div class="dup-info-row">
+                        <span class="dup-info-label">证件类型</span>
+                        <span>${d.certificate_type}</span>
+                    </div>
+                    <div class="dup-info-row">
+                        <span class="dup-info-label">重复字段</span>
+                        <span class="dup-fields">${(d.duplicate_fields || []).join('、')}</span>
+                    </div>
+                    <table class="info-table compact">
+                        ${Object.entries(info).map(([k,v]) => `<tr><td class="info-key">${k}</td><td>${v}</td></tr>`).join('')}
+                    </table>
+                </div>
+            </div>
+            <div class="dup-card-footer">
+                <a href="/detail/${d.id}" class="btn btn-sm">查看详情</a>
+                <button class="btn btn-sm btn-danger" onclick="deleteDup('${d.id}')">删除</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function deleteDup(id) {
+    if (!confirm('确定删除这条记录吗？')) return;
+    try {
+        await fetch(`/api/records/${id}`, {method: 'DELETE'});
+        loadDuplicates();
+        updateBadges();
+    } catch(e) {}
+}
+
+loadDuplicates();
+</script>
+{% endblock %}

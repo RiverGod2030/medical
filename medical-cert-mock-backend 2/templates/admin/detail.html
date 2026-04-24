@@ -1,0 +1,196 @@
+{% extends "admin/base.html" %}
+{% block title %}审核详情{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>审核详情</h1>
+    <a href="/records" class="link">&larr; 返回记录列表</a>
+</div>
+
+<div id="detail-container">
+    <div class="loading-state">
+        <div class="spinner"></div>
+        <p>加载中...</p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const recordId = '{{ record_id }}';
+
+async function loadDetail() {
+    try {
+        const res = await fetch(`/api/records/${recordId}`);
+        const data = await res.json();
+        if (!data.record) {
+            document.getElementById('detail-container').innerHTML = `
+                <div class="card">
+                    <div class="empty-state">
+                        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                        <p>记录不存在</p>
+                        <a href="/records" class="btn-primary">返回记录列表</a>
+                    </div>
+                </div>`;
+            return;
+        }
+        renderDetail(data.record);
+    } catch (e) {
+        document.getElementById('detail-container').innerHTML = '<p class="error">加载失败</p>';
+    }
+}
+
+function renderDetail(record) {
+    const result = record.result || {};
+    const isError = record.status === 'error' || 'error' in result;
+    const container = document.getElementById('detail-container');
+
+    let html = '';
+
+    // Error state
+    if (isError) {
+        html += `
+            <div class="card">
+                <div class="result-error-large">
+                    <svg class="error-icon-large" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <h2>审核异常</h2>
+                    <p class="error-detail">${result.error || '未知错误'}</p>
+                    ${result.raw_response ? `
+                        <details>
+                            <summary>查看原始响应</summary>
+                            <pre class="raw-response">${result.raw_response}</pre>
+                        </details>
+                    ` : ''}
+                    <div class="error-actions">
+                        <a href="/records" class="btn-secondary">返回列表</a>
+                        <a href="/upload" class="btn-primary">重新审核</a>
+                    </div>
+                </div>
+            </div>`;
+        container.innerHTML = html;
+        return;
+    }
+
+    // Image + Result side by side
+    html += `
+        <div class="two-col">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header"><h2>证件图片</h2></div>
+                    <div class="image-large">
+                        <img src="${record.image_path}" alt="证件" class="preview-large">
+                    </div>
+                    <div class="image-meta">
+                        <span>文件名：${record.filename}</span>
+                        <span>上传时间：${record.timestamp}</span>
+                        <span>审核耗时：${(record.duration_ms / 1000).toFixed(1)}s</span>
+                        <span>大模型：${(result.provider || config?.llm_provider || 'mock').toUpperCase()}</span>
+                        ${record.submit_time ? `<span>提交时间：${formatSubmitTime(record.submit_time)}</span>` : ''}
+                        ${record.appeal?.reason ? `<span style="color:#7c3aed;">申诉：${record.appeal.reason}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>审核结果</h2>
+                        <span class="status-badge badge-success">审核完成</span>
+                    </div>
+
+                    <div class="result-hero-large">
+                        <span class="role-badge-large">${result.detected_role}</span>
+                        <p class="cert-type-large">${result.certificate_type}</p>
+                    </div>
+
+                    <div class="result-metrics">
+                        <div class="metric">
+                            <span class="metric-value" style="color: ${result.confidence >= 0.8 ? '#16a34a' : result.confidence >= 0.6 ? '#d97706' : '#dc2626'}">
+                                ${(result.confidence * 100).toFixed(0)}%
+                            </span>
+                            <span class="metric-label">置信度</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value" style="color: ${(result.authenticity_score || 0) >= 0.75 ? '#16a34a' : '#dc2626'}">
+                                ${((result.authenticity_score || 0) * 100).toFixed(0)}%
+                            </span>
+                            <span class="metric-label">真实性评分</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value">${(result.is_likely_valid ? '有效' : '存疑')}</span>
+                            <span class="metric-label">证件有效性</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Extracted info
+    if (result.extracted_info) {
+        html += `
+            <div class="card">
+                <div class="card-header"><h2>提取的证件信息</h2></div>
+                <table class="info-table detail-info-table">
+                    ${Object.entries(result.extracted_info).map(([k, v]) => `
+                        <tr><td class="info-key">${k}</td><td class="info-val">${v}</td></tr>
+                    `).join('')}
+                </table>
+            </div>
+        `;
+    }
+
+    // Analysis notes
+    if (result.analysis_notes) {
+        html += `
+            <div class="card">
+                <div class="card-header"><h2>AI 分析备注</h2></div>
+                <div class="analysis-notes">
+                    <p>${result.analysis_notes}</p>
+                </div>
+            </div>
+        `;
+    }
+
+    // Raw response
+    html += `
+        <div class="card">
+            <div class="card-header"><h2>大模型原始响应</h2></div>
+            <details>
+                <summary>点击查看 JSON</summary>
+                <pre class="raw-json">${JSON.stringify(result, null, 2)}</pre>
+            </details>
+        </div>
+    `;
+
+    // Actions
+    html += `
+        <div class="card">
+            <div class="action-bar">
+                <a href="/records" class="btn-secondary">返回记录列表</a>
+                <button class="btn-primary" onclick="window.location.href='/review'">去复审</button>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+function formatSubmitTime(iso) {
+    try {
+        const d = new Date(iso);
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch(e) {
+        return iso;
+    }
+}
+
+loadDetail();
+</script>
+{% endblock %}

@@ -1,0 +1,272 @@
+{% extends "admin/base.html" %}
+{% block title %}大模型配置{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>大模型配置</h1>
+    <p class="page-desc">配置用于证件审核的大模型 API</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>模型提供商</h2>
+    </div>
+    <div class="provider-selector">
+        <label class="radio-card" id="radio-mock">
+            <input type="radio" name="provider" value="mock" {% if config.llm_provider == 'mock' %}checked{% endif %} onchange="onProviderChange()">
+            <span class="radio-icon"></span>
+            <div class="radio-content">
+                <span class="radio-title">模拟模式</span>
+                <span class="radio-desc">使用本地规则模拟审核结果，无需 API Key，适合功能演示</span>
+            </div>
+        </label>
+        <label class="radio-card" id="radio-openai">
+            <input type="radio" name="provider" value="openai" {% if config.llm_provider == 'openai' %}checked{% endif %} onchange="onProviderChange()">
+            <span class="radio-icon"></span>
+            <div class="radio-content">
+                <span class="radio-title">OpenAI</span>
+                <span class="radio-desc">使用 GPT-4o 视觉模型分析证件图片，需要 OpenAI API Key</span>
+            </div>
+        </label>
+        <label class="radio-card" id="radio-claude">
+            <input type="radio" name="provider" value="claude" {% if config.llm_provider == 'claude' %}checked{% endif %} onchange="onProviderChange()">
+            <span class="radio-icon"></span>
+            <div class="radio-content">
+                <span class="radio-title">Anthropic Claude</span>
+                <span class="radio-desc">使用 Claude 视觉模型分析证件图片，需要 Anthropic API Key</span>
+            </div>
+        </label>
+        <label class="radio-card" id="radio-zhipu">
+            <input type="radio" name="provider" value="zhipu" {% if config.llm_provider == 'zhipu' %}checked{% endif %} onchange="onProviderChange()">
+            <span class="radio-icon"></span>
+            <div class="radio-content">
+                <span class="radio-title">智谱 GLM</span>
+                <span class="radio-desc">使用智谱 GLM-4V 视觉模型分析证件图片，需要智谱 API Key</span>
+            </div>
+        </label>
+    </div>
+</div>
+
+<!-- OpenAI Settings -->
+<div class="card provider-config" id="config-openai" style="display:{% if config.llm_provider == 'openai' %}block{% else %}none{% endif %};">
+    <div class="card-header">
+        <h2>OpenAI 配置</h2>
+    </div>
+    <div class="form-group">
+        <label>API Key</label>
+        <input type="password" id="openai_api_key" class="input" value="{{ config.openai_api_key }}" placeholder="sk-...">
+    </div>
+    <div class="form-group">
+        <label>模型</label>
+        <select id="openai_model" class="select">
+            <option value="gpt-4o" {% if config.openai_model == 'gpt-4o' %}selected{% endif %}>GPT-4o</option>
+            <option value="gpt-4o-mini" {% if config.openai_model == 'gpt-4o-mini' %}selected{% endif %}>GPT-4o Mini</option>
+            <option value="gpt-4-turbo" {% if config.openai_model == 'gpt-4-turbo' %}selected{% endif %}>GPT-4 Turbo</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label>Base URL（可选，用于代理或兼容接口）</label>
+        <input type="text" id="openai_base_url" class="input" value="{{ config.openai_base_url }}" placeholder="https://api.openai.com/v1">
+    </div>
+</div>
+
+<!-- Claude Settings -->
+<div class="card provider-config" id="config-claude" style="display:{% if config.llm_provider == 'claude' %}block{% else %}none{% endif %};">
+    <div class="card-header">
+        <h2>Claude 配置</h2>
+    </div>
+    <div class="form-group">
+        <label>API Key</label>
+        <input type="password" id="claude_api_key" class="input" value="{{ config.claude_api_key }}" placeholder="sk-ant-...">
+    </div>
+    <div class="form-group">
+        <label>模型</label>
+        <select id="claude_model" class="select">
+            <option value="claude-sonnet-4-20250514" {% if config.claude_model == 'claude-sonnet-4-20250514' %}selected{% endif %}>Claude Sonnet 4</option>
+            <option value="claude-opus-4-20250514" {% if config.claude_model == 'claude-opus-4-20250514' %}selected{% endif %}>Claude Opus 4</option>
+            <option value="claude-3-5-sonnet-20241022" {% if config.claude_model == 'claude-3-5-sonnet-20241022' %}selected{% endif %}>Claude 3.5 Sonnet</option>
+        </select>
+    </div>
+</div>
+
+<!-- Zhipu Settings -->
+<div class="card provider-config" id="config-zhipu" style="display:{% if config.llm_provider == 'zhipu' %}block{% else %}none{% endif %};">
+    <div class="card-header">
+        <h2>智谱 GLM 配置</h2>
+    </div>
+    <div class="form-group">
+        <label>API Key</label>
+        <input type="password" id="zhipu_api_key" class="input" value="{{ config.zhipu_api_key }}" placeholder="你的智谱 API Key">
+    </div>
+    <div class="form-group">
+        <label>模型</label>
+        <select id="zhipu_model" class="select">
+            <option value="glm-4v-plus" {% if config.zhipu_model == 'glm-4v-plus' %}selected{% endif %}>GLM-4V-Plus（推荐）</option>
+            <option value="glm-4v" {% if config.zhipu_model == 'glm-4v' %}selected{% endif %}>GLM-4V</option>
+            <option value="glm-4v-flash" {% if config.zhipu_model == 'glm-4v-flash' %}selected{% endif %}>GLM-4V-Flash（免费）</option>
+        </select>
+    </div>
+    <p class="form-hint">智谱 API 默认 base URL: https://open.bigmodel.cn/api/paas/v4/</p>
+</div>
+
+<!-- Custom Prompt -->
+<div class="card">
+    <div class="card-header">
+        <h2>审核 Prompt</h2>
+        <button class="btn-small" onclick="resetPrompt()">恢复默认</button>
+    </div>
+    <div class="form-group">
+        <label>系统 Prompt（留空使用默认值）</label>
+        <textarea id="audit_prompt" class="textarea" rows="12" placeholder="留空则使用默认审核 Prompt...">{{ config.audit_prompt }}</textarea>
+        <p class="form-hint">该 Prompt 将发送给大模型，指导其如何分析证件图片。支持自定义审核维度和输出格式。</p>
+    </div>
+</div>
+
+<!-- Save -->
+<div class="card">
+    <button class="btn-primary btn-lg" onclick="saveSettings()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+        </svg>
+        保存配置
+    </button>
+    <span class="save-status" id="save-status"></span>
+</div>
+
+<!-- Connection Test -->
+<div class="card">
+    <div class="card-header">
+        <h2>连接测试</h2>
+    </div>
+    <p class="form-hint">上传一张测试图片，验证大模型是否正常工作</p>
+    <div class="test-area">
+        <input type="file" id="test-file" accept="image/*" hidden>
+        <button class="btn-secondary" onclick="document.getElementById('test-file').click()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            选择测试图片
+        </button>
+        <span id="test-file-name"></span>
+    </div>
+    <button class="btn-primary" id="btn-test" onclick="testConnection()" disabled>测试连接</button>
+    <div id="test-result" class="test-result" style="display:none;"></div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const defaultPrompt = `你是一个专业的医疗证件审核 AI。请分析上传的证件图片，完成以下任务：
+
+1. **证件类型识别**：判断这是什么类型的证件（医师资格证、医师执业证、护士资格证、护士执业证、医院工作证、学生证、职称证书、规培证等）
+2. **职业角色判断**：根据证件内容判断持证人的职业角色，从以下类别中选择：医生、护士、技师（医技人员）、药师、医学生、医院管理人员、其他
+3. **关键信息提取**：从证件中提取以下信息（如可见）：姓名、证件编号、执业范围/专业、职称/级别、发证日期、有效期、发证机关、工作单位/学校
+4. **证件真实性评估**：评估证件看起来是否真实有效（基于排版、印章、格式等视觉特征）
+
+请以 JSON 格式输出，包含字段：certificate_type, detected_role, confidence (0-1), extracted_info (对象), authenticity_score (0-1), is_likely_valid (bool), analysis_notes (string)。只输出 JSON，不要其他内容。`;
+
+function onProviderChange() {
+    const provider = document.querySelector('input[name="provider"]:checked').value;
+    document.querySelectorAll('.provider-config').forEach(el => el.style.display = 'none');
+    const configEl = document.getElementById('config-' + provider);
+    if (configEl) configEl.style.display = 'block';
+}
+
+async function saveSettings() {
+    const provider = document.querySelector('input[name="provider"]:checked').value;
+    const data = {
+        llm_provider: provider,
+        openai_api_key: document.getElementById('openai_api_key').value,
+        openai_model: document.getElementById('openai_model').value,
+        openai_base_url: document.getElementById('openai_base_url').value,
+        claude_api_key: document.getElementById('claude_api_key').value,
+        claude_model: document.getElementById('claude_model').value,
+        zhipu_api_key: document.getElementById('zhipu_api_key').value,
+        zhipu_model: document.getElementById('zhipu_model').value,
+        audit_prompt: document.getElementById('audit_prompt').value
+    };
+
+    const statusEl = document.getElementById('save-status');
+    statusEl.textContent = '保存中...';
+
+    try {
+        const res = await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (result.success) {
+            statusEl.textContent = '✓ 保存成功，3秒后刷新页面...';
+            statusEl.className = 'save-status success';
+            setTimeout(() => location.reload(), 3000);
+        }
+    } catch (e) {
+        statusEl.textContent = '✗ 保存失败';
+        statusEl.className = 'save-status error';
+    }
+}
+
+function resetPrompt() {
+    document.getElementById('audit_prompt').value = defaultPrompt;
+}
+
+// Test connection
+let testFile = null;
+document.getElementById('test-file').addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        testFile = e.target.files[0];
+        document.getElementById('test-file-name').textContent = testFile.name;
+        document.getElementById('btn-test').disabled = false;
+    }
+});
+
+async function testConnection() {
+    if (!testFile) return;
+
+    const resultEl = document.getElementById('test-result');
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = '<p class="loading">测试中...</p>';
+    document.getElementById('btn-test').disabled = true;
+
+    const formData = new FormData();
+    formData.append('image', testFile);
+
+    try {
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (data.success) {
+            const r = data.result;
+            resultEl.innerHTML = `
+                <div class="test-success">
+                    <svg class="test-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    <h4>连接成功</h4>
+                    <p>识别角色：<strong>${r.detected_role}</strong></p>
+                    <p>证件类型：${r.certificate_type}</p>
+                    <p>置信度：${(r.confidence * 100).toFixed(0)}%</p>
+                    <p>耗时：${(data.duration_ms / 1000).toFixed(1)}s</p>
+                </div>
+            `;
+        } else {
+            resultEl.innerHTML = `
+                <div class="test-fail">
+                    <svg class="test-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                    <h4>连接失败</h4>
+                    <p>${data.result.error}</p>
+                </div>
+            `;
+        }
+    } catch (e) {
+        resultEl.innerHTML = `<div class="test-fail"><svg class="test-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h4>请求失败</h4><p>${e.message}</p></div>`;
+    }
+
+    document.getElementById('btn-test').disabled = false;
+}
+</script>
+{% endblock %}

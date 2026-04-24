@@ -1,0 +1,496 @@
+[
+  {
+    "id": "35ea0583-5",
+    "timestamp": "2026-04-16 17:40:38",
+    "filename": "20260416151816.jpg",
+    "image_path": "/static/uploads/57b8ae49f3ce.jpg",
+    "duration_ms": 4029,
+    "submit_time": "2026-04-16T17:40:38.725171",
+    "result": {
+      "certificate_type": "医师执业证",
+      "detected_role": "医生",
+      "confidence": 1.0,
+      "extracted_info": {
+        "姓名": "",
+        "证件编号": "",
+        "执业范围/专业": "",
+        "职称/级别": "",
+        "发证日期": "",
+        "有效期": "",
+        "发证机关": "",
+        "工作单位/学校": ""
+      },
+      "authenticity_score": 0.5,
+      "is_likely_valid": false,
+      "analysis_notes": "该证件为空白页，无法提取任何有效信息",
+      "provider": "zhipu"
+    },
+    "review_status": "manually_rejected",
+    "status": "completed",
+    "detected_role": "医生",
+    "certificate_type": "医师执业证",
+    "confidence": 1.0,
+    "is_duplicate": false,
+    "manual_review": {
+      "action": "reject",
+      "comment": "",
+      "reviewer": "admin",
+      "time": "2026-04-16 17:41:15"
+    }
+  },
+  {
+    "id": "be1362d9-a",
+    "timestamp": "2026-04-16 15:22:02",
+    "filename": "20260416151816.jpg",
+    "image_path": "/static/uploads/4ef04567ab82.jpg",
+    "duration_ms": 2953,
+    "submit_time": "2026-04-16T15:22:02.615341",
+    "result": {
+      "certificate_type": "医师执业证",
+      "detected_role": "医生",
+      "confidence": 1.0,
+      "extracted_info": {
+        "姓名": "",
+        "证件编号": "",
+        "执业范围/专业": "",
+        "职称/级别": "",
+        "发证日期": "",
+        "有效期": "",
+        "发证机关": "",
+        "工作单位/学校": ""
+      },
+      "authenticity_score": 0.5,
+      "is_likely_valid": false,
+      "analysis_notes": "证件未填写具体信息，无法确定其有效性",
+      "provider": "zhipu"
+    },
+    "review_status": "needs_review",
+    "status": "completed",
+    "detected_role": "医生",
+    "certificate_type": "医师执业证",
+    "confidence": 1.0,
+    "is_duplicate": false
+  },
+  {
+    "id": "24567cef-6",
+    "timestamp": "2026-04-16 15:21:50",
+    "filename": "20260416151653.jpg",
+    "image_path": "/static/uploads/a3cd520f9035.jpg",
+    "duration_ms": 3344,
+    "submit_time": "2026-04-16T15:21:50.256339",
+    "result": {
+      "certificate_type": "乡村医生执业证书",
+      "detected_role": "医生",
+      "confidence": 1.0,
+      "extracted_info": {
+        "姓名": "",
+        "证件编号": "",
+        "执业范围/专业": "",
+        "职称/级别": "",
+        "发证日期": "",
+        "有效期": "",
+        "发证机关": "安徽省卫生厅",
+        "工作单位/学校": ""
+      },
+      "authenticity_score": 1.0,
+      "is_likely_valid": true,
+      "analysis_notes": "该证件为中华人民共和国乡村医生执业证书，由安徽省卫生厅颁发。",
+      "provider": "zhipu"
+    },
+    "review_status": "auto_passed",
+    "status": "completed",
+    "detected_role": "医生",
+    "certificate_type": "乡村医生执业证书",
+    "confidence": 1.0,
+    "is_duplicate": false
+  },
+  {
+    "id": "0e28375e-6",
+    "timestamp": "2026-04-16 15:18:33",
+    "filename": "20260416151816.jpg",
+    "image_path": "/static/uploads/e78c92d5663e.jpg",
+    "duration_ms": 6025,
+    "submit_time": "2026-04-16T15:18:33.246872",
+    "result": {
+      "certificate_type": "医师执业证",
+      "detected_role": "医生",
+      "confidence": 1.0,
+      "extracted_info": {
+        "姓名": "",
+        "证件编号": "",
+        "执业范围/专业": "",
+        "职称/级别": "",
+        "发证日期": "",
+        "有效期": "",
+        "发证机关": "",
+        "工作单位/学校": ""
+      },
+      "authenticity_score": 0.5,
+      "is_likely_valid": false,
+      "analysis_notes": "该证件为空白页，未填写任何信息，无法确定其真实性和有效性。",
+      "provider": "zhipu"
+    },
+    "review_status": "auto_passed",
+    "status": "completed",
+    "detected_role": "医生",
+    "certificate_type": "医师执业证",
+    "confidence": 1.0,
+    "is_duplicate": false
+  },
+  {
+    "id": "1794b2ce-8",
+    "timestamp": "2026-04-16 15:17:09",
+    "filename": "20260416151653.jpg",
+    "image_path": "/static/uploads/b7c62c839c71.jpg",
+    "duration_ms": 3824,
+    "submit_time": "2026-04-16T15:17:09.090441",
+    "result": {
+      "certificate_type": "乡村医生执业证书",
+      "detected_role": "医生",
+      "confidence": 1.0,
+      "extracted_info": {
+        "姓名": "",
+        "证件编号": "",
+        "执业范围/专业": "",
+        "职称/级别": "",
+        "发证日期": "",
+        "有效期": "",
+        "发证机关": "安徽省卫生厅",
+        "工作单位/学校": ""
+      },
+      "authenticity_score": 1.0,
+      "is_likely_valid": true,
+      "analysis_notes": "该证件为中华人民共和国乡村医生执业证书，由安徽省卫生厅颁发。",
+      "provider": "zhipu"
+    },
+    "review_status": "auto_passed",
+    "status": "completed",
+    "detected_role": "医生",
+    "certificate_type": "乡村医生执业证书",
+    "confidence": 1.0,
+    "is_duplicate": false
+  },
+  {
+    "id": "1ad0fe71-0",
+    "timestamp": "2026-04-14 18:51:17",
+    "filename": "夸克产品宣传图.png",
+    "image_path": "/static/uploads/768a464c4133.png",
+    "duration_ms": 9631,
+    "result": {
+      "certificate_type": "无",
+      "detected_role": "其他",
+      "confidence": 0,
+      "extracted_info": {
+        "姓名": "",
+        "证件编号": "",
+        "执业范围/专业": "",
+        "职称/级别": "",
+        "发证日期": "",
+        "有效期": "",
+        "发证机关": "",
+        "工作单位/学校": ""
+      },
+      "authenticity_score": 0,
+      "is_likely_valid": false,
+      "analysis_notes": "这是一张广告宣传图，不是真正的医疗证件",
+      "provider": "zhipu"
+    },
+    "review_status": "auto_rejected",
+    "status": "completed",
+    "detected_role": "其他",
+    "certificate_type": "无",
+    "confidence": 0,
+    "is_duplicate": false
+  },
+  {
+    "id": "b80ccae5-1",
+    "timestamp": "2026-04-14 18:50:38",
+    "filename": "举报功能说明截图.jpg",
+    "image_path": "/static/uploads/2ff0ef9e4377.jpg",
+    "duration_ms": 1712,
+    "result": {
+      "error": "智谱 API 调用失败: Error code: 400 - {'contentFilter': [{'level': 1, 'role': 'assistant'}], 'error': {'code': '1301', 'message': '系统检测到输入或生成内容可能包含不安全或敏感内容，请您避免输入易产生敏感内容的提示语，感谢您的配合。'}}",
+      "provider": "zhipu"
+    },
+    "status": "error"
+  },
+  {
+    "id": "b6ee63cb-d",
+    "timestamp": "2026-04-14 18:50:09",
+    "filename": "20260414113248.jpg",
+    "image_path": "/static/uploads/76acb27c919f.jpg",
+    "duration_ms": 4843,
+    "result": {
+      "certificate_type": "医师执业证",
+      "detected_role": "医生",
+      "confidence": 1.0,
+      "extracted_info": {
+        "姓名": "XXX",
+        "证件编号": "1331",
+        "学历": "硕士研究生",
+        "毕业学校": "福建中医学院",
+        "专业": "中医学",
+        "类别": "中医",
+        "发证机关": "福建省卫生健康委员会",
+        "签发人": "柳红",
+        "签发日期": "1999年05月01日",
+        "出生日期": "1968年01月11日"
+      },
+      "authenticity_score": 1.0,
+      "is_likely_valid": true,
+      "analysis_notes": "证件包含照片区域和加盖认定机关钢印，格式正规，印章清晰，显示为官方颁发的医师执业证。",
+      "provider": "zhipu"
+    },
+    "review_status": "duplicate_rejected",
+    "status": "completed",
+    "detected_role": "医生",
+    "certificate_type": "医师执业证",
+    "confidence": 1.0,
+    "is_duplicate": true,
+    "duplicate_of": "15358a15-0",
+    "duplicate_fields": [
+      "证件编号",
+      "姓名"
+    ]
+  },
+  {
+    "id": "15358a15-0",
+    "timestamp": "2026-04-14 18:43:46",
+    "filename": "20260414113248.jpg",
+    "image_path": "/static/uploads/e983792db752.jpg",
+    "duration_ms": 7252,
+    "result": {
+      "certificate_type": "医师资格证",
+      "detected_role": "医生",
+      "confidence": 1.0,
+      "extracted_info": {
+        "姓名": "XXX",
+        "证件编号": "1331",
+        "学历": "硕士研究生",
+        "毕业学校": "福建中医学院",
+        "专业": "中医学",
+        "类别": "中医",
+        "发证机关": "福建省卫生健康委员会",
+        "签发人": "柳红",
+        "签发日期": "1999年05月01日",
+        "出生日期": "1968年01月11日"
+      },
+      "authenticity_score": 1.0,
+      "is_likely_valid": true,
+      "analysis_notes": "证件包含照片区域和加盖认定机关钢印，格式正规，印章清晰，显示为补发状态，可能为真。",
+      "provider": "zhipu"
+    },
+    "review_status": "duplicate_rejected",
+    "status": "completed",
+    "detected_role": "医生",
+    "certificate_type": "医师资格证",
+    "confidence": 1.0,
+    "is_duplicate": true,
+    "duplicate_of": "a35a37f5-0",
+    "duplicate_fields": [
+      "姓名"
+    ]
+  },
+  {
+    "id": "a35a37f5-0",
+    "timestamp": "2026-04-14 18:14:07",
+    "filename": "20260414113248.jpg",
+    "image_path": "/static/uploads/b9eb3bb9b34a.jpg",
+    "duration_ms": 4995,
+    "result": {
+      "certificate_type": "医师资格证",
+      "detected_role": "医生",
+      "confidence": 1.0,
+      "extracted_info": {
+        "姓名": "XXX",
+        "证件编号": "19983514236",
+        "专业": "中医学",
+        "发证机关": "福建省卫生健康委员会",
+        "签发人": "柳红",
+        "签发日期": "1999年05月01日"
+      },
+      "authenticity_score": 1.0,
+      "is_likely_valid": true,
+      "analysis_notes": "证件包含照片、签名和官方印章，格式正规，应为真实有效的医师资格证。",
+      "provider": "zhipu"
+    },
+    "status": "completed",
+    "detected_role": "医生",
+    "certificate_type": "医师资格证",
+    "confidence": 1.0
+  },
+  {
+    "id": "f16bca10-7",
+    "timestamp": "2026-04-14 18:13:48",
+    "filename": "20260414113248.jpg",
+    "image_path": "/static/uploads/a3d2642419c4.jpg",
+    "duration_ms": 4205,
+    "result": {
+      "certificate_type": "医师资格证",
+      "detected_role": "医生",
+      "confidence": 1.0,
+      "extracted_info": {
+        "姓名": "XXX",
+        "证件编号": "19983514236",
+        "专业": "中医学",
+        "发证机关": "福建省卫生健康委员会",
+        "签发人": "柳红",
+        "签发日期": "1999年05月01日"
+      },
+      "authenticity_score": 1.0,
+      "is_likely_valid": true,
+      "analysis_notes": "证件包含照片、签名和官方印章，格式正规，显示为医师资格证。",
+      "provider": "zhipu"
+    },
+    "status": "completed",
+    "detected_role": "医生",
+    "certificate_type": "医师资格证",
+    "confidence": 1.0
+  },
+  {
+    "id": "5cd2425b-5",
+    "timestamp": "2026-04-14 18:12:48",
+    "filename": "test_cert.png",
+    "image_path": "/static/uploads/c90d9d5729b3.png",
+    "duration_ms": 4208,
+    "result": {
+      "certificate_type": "医师执业证",
+      "detected_role": "医生",
+      "confidence": 1.0,
+      "extracted_info": {
+        "姓名": "张三",
+        "证件编号": "110101199001011234",
+        "执业范围 / 专业": "内科",
+        "职称 / 级别": "主治医师",
+        "发证日期": "2020年06月",
+        "有效期": "长期",
+        "发证机关": "北京市卫生健康委员会",
+        "工作单位 / 学校": "北京大学第一附属医院"
+      },
+      "authenticity_score": 1.0,
+      "is_likely_valid": true,
+      "analysis_notes": "证件包含清晰的个人信息和官方印章，显示为真实的医师执业证。",
+      "provider": "zhipu"
+    },
+    "status": "completed",
+    "detected_role": "医生",
+    "certificate_type": "医师执业证",
+    "confidence": 1.0
+  },
+  {
+    "id": "05b22350-6",
+    "timestamp": "2026-04-14 18:09:41",
+    "filename": "20260414113248.jpg",
+    "image_path": "/static/uploads/05d2061bcf2a.jpg",
+    "duration_ms": 336,
+    "result": {
+      "error": "智谱 API 调用失败: Error code: 400 - {'error': {'code': '1210', 'message': 'API 调用参数有误，请检查文档。'}}",
+      "provider": "zhipu"
+    },
+    "status": "error"
+  },
+  {
+    "id": "9e816f3c-1",
+    "timestamp": "2026-04-14 18:08:24",
+    "filename": "20260414113248.jpg",
+    "image_path": "/static/uploads/05ed6f4ed8a7.jpg",
+    "duration_ms": 1231,
+    "result": {
+      "error": "智谱 API 调用失败: Error code: 400 - {'error': {'code': '1210', 'message': 'API 调用参数有误，请检查文档。'}}",
+      "provider": "zhipu"
+    },
+    "status": "error"
+  },
+  {
+    "id": "30b87031-1",
+    "timestamp": "2026-04-14 18:07:14",
+    "filename": "test_cert.png",
+    "image_path": "/static/uploads/d8c6d2ac8cb3.png",
+    "duration_ms": 1050,
+    "result": {
+      "error": "智谱 API 调用失败: Error code: 401 - {'error': {'code': '401', 'message': '令牌已过期或验证不正确'}}",
+      "provider": "zhipu"
+    },
+    "status": "error"
+  },
+  {
+    "id": "df2a4bdf-e",
+    "timestamp": "2026-04-14 18:06:48",
+    "filename": "test_cert.png",
+    "image_path": "/static/uploads/9b70f7ec2028.png",
+    "duration_ms": 0,
+    "result": {
+      "error": "未安装 openai 库，请运行: pip install openai",
+      "provider": "zhipu"
+    },
+    "status": "error"
+  },
+  {
+    "id": "bcd21106-d",
+    "timestamp": "2026-04-14 18:03:19",
+    "filename": "20260414113248.jpg",
+    "image_path": "/static/uploads/1a5a634da5df.jpg",
+    "duration_ms": 0,
+    "result": {
+      "certificate_type": "规培证",
+      "detected_role": "医生",
+      "confidence": 0.94,
+      "extracted_info": {
+        "姓名": "王丽",
+        "证件编号": "950697041457027430",
+        "执业范围": "内科",
+        "职称": "住院医师",
+        "发证日期": "2021年04月",
+        "有效期至": "2026年07月"
+      },
+      "authenticity_score": 0.91,
+      "is_likely_valid": true,
+      "analysis_notes": "模拟结果：识别为医生的规培证。请注意这是模拟数据，配置真实大模型 API 后将返回实际分析结果。",
+      "provider": "mock"
+    },
+    "status": "completed",
+    "detected_role": "医生",
+    "certificate_type": "规培证",
+    "confidence": 0.94
+  },
+  {
+    "id": "1ebdc4ed-c",
+    "timestamp": "2026-04-14 16:42:35",
+    "filename": "test_cert.png",
+    "image_path": "/static/uploads/8e481068e79b.png",
+    "duration_ms": 0,
+    "result": {
+      "certificate_type": "技师资格证书",
+      "detected_role": "技师",
+      "confidence": 0.87,
+      "extracted_info": {
+        "姓名": "王勇",
+        "证件编号": "323456736928375276",
+        "科室": "检验科",
+        "职称": "技师",
+        "发证日期": "2023年04月",
+        "有效期至": "2026年02月"
+      },
+      "authenticity_score": 0.91,
+      "is_likely_valid": true,
+      "analysis_notes": "模拟结果：识别为技师的技师资格证书。请注意这是模拟数据，配置真实大模型 API 后将返回实际分析结果。",
+      "provider": "mock"
+    },
+    "status": "completed",
+    "detected_role": "技师",
+    "certificate_type": "技师资格证书",
+    "confidence": 0.87
+  },
+  {
+    "id": "b82f520a-b",
+    "timestamp": "2026-04-14 14:16:25",
+    "filename": "test_cert.png",
+    "image_path": "/static/uploads/e9ce8de1d692.png",
+    "duration_ms": 0,
+    "result": {
+      "error": "未配置 OpenAI API Key，请在 config.json 中配置 openai_api_key",
+      "provider": "openai"
+    },
+    "status": "error"
+  }
+]

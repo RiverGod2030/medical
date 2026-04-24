@@ -1,0 +1,166 @@
+{% extends "admin/base.html" %}
+{% block title %}审核记录{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>审核记录</h1>
+    <p class="page-desc">所有 AI 证件审核历史</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="filter-bar">
+            <select id="role-filter" class="select" onchange="loadRecords()">
+                <option value="">全部角色</option>
+                <option value="医生">医生</option>
+                <option value="护士">护士</option>
+                <option value="技师">技师</option>
+                <option value="药师">药师</option>
+                <option value="医学生">医学生</option>
+            </select>
+            <span class="records-total" id="records-total"></span>
+        </div>
+        <button class="btn-small btn-danger" onclick="clearAll()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            清空全部
+        </button>
+    </div>
+    <div id="records-table" class="table-container">
+        <p class="loading">加载中...</p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1;
+const perPage = 20;
+
+async function loadRecords() {
+    const role = document.getElementById('role-filter').value;
+    const url = `/api/records?page=${currentPage}&per_page=${perPage}${role ? '&role=' + role : ''}`;
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        renderRecords(data);
+    } catch (e) {
+        document.getElementById('records-table').innerHTML = '<p class="error">加载失败</p>';
+    }
+}
+
+function renderRecords(data) {
+    const container = document.getElementById('records-table');
+    document.getElementById('records-total').textContent = `共 ${data.total} 条`;
+
+    if (data.records.length === 0) {
+        container.innerHTML = '<div class="empty-state"><svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>暂无审核记录</p></div>';
+        return;
+    }
+
+    let html = `
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>图片</th>
+                    <th>文件名</th>
+                    <th>识别角色</th>
+                    <th>证件类型</th>
+                    <th>置信度</th>
+                    <th>真实性</th>
+                    <th>耗时</th>
+                    <th>时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    data.records.forEach(r => {
+        const isError = r.status === 'error';
+        const result = r.result || {};
+        html += `
+            <tr>
+                <td><img src="${r.image_path}" class="thumb" alt="证件"></td>
+                <td class="filename" title="${r.filename}">${r.filename}</td>
+                <td>
+                    ${isError ? '<span class="badge-error">异常</span>' : `<span class="badge-role">${r.detected_role || '-'}</span>`}
+                </td>
+                <td>${isError ? '-' : (r.certificate_type || '-')}</td>
+                <td>
+                    ${isError ? '-' : `
+                        <span class="confidence ${(result.confidence || 0) >= 0.8 ? 'high' : (result.confidence || 0) >= 0.6 ? 'medium' : 'low'}">
+                            ${((result.confidence || 0) * 100).toFixed(0)}%
+                        </span>
+                    `}
+                </td>
+                <td>
+                    ${isError ? '-' : `
+                        <span class="authenticity ${((result.authenticity_score || 0) >= 0.75) ? 'high' : 'low'}">
+                            ${((result.authenticity_score || 0) * 100).toFixed(0)}%
+                        </span>
+                    `}
+                </td>
+                <td>${(r.duration_ms / 1000).toFixed(1)}s</td>
+                <td class="time">${r.timestamp}</td>
+                <td>
+                    <a href="/detail/${r.id}" class="btn-small">详情</a>
+                    <button class="btn-small btn-danger" onclick="deleteRecord('${r.id}')">删除</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table>';
+
+    // Pagination
+    const totalPages = Math.ceil(data.total / perPage);
+    if (totalPages > 1) {
+        html += `
+            <div class="pagination">
+                ${currentPage > 1 ? `<button class="page-btn" onclick="goPage(${currentPage - 1})">上一页</button>` : ''}
+                <span class="page-info">第 ${currentPage} / ${totalPages} 页</span>
+                ${currentPage < totalPages ? `<button class="page-btn" onclick="goPage(${currentPage + 1})">下一页</button>` : ''}
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+
+function goPage(page) {
+    currentPage = page;
+    loadRecords();
+}
+
+async function deleteRecord(id) {
+    if (!confirm('确定删除这条记录吗？')) return;
+    try {
+        await fetch(`/api/records/${id}`, { method: 'DELETE' });
+        loadRecords();
+    } catch (e) {
+        alert('删除失败');
+    }
+}
+
+async function clearAll() {
+    if (!confirm('确定清空所有审核记录吗？此操作不可恢复。')) return;
+    try {
+        const res = await fetch('/api/records');
+        const data = await res.json();
+        for (const r of data.records) {
+            await fetch(`/api/records/${r.id}`, { method: 'DELETE' });
+        }
+        currentPage = 1;
+        loadRecords();
+    } catch (e) {
+        alert('清空失败');
+    }
+}
+
+loadRecords();
+</script>
+{% endblock %}
